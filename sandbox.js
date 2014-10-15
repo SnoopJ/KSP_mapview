@@ -37,6 +37,7 @@ function orbitinit() {
     // derived quantities
     orbit.apo = orbit.sma*(1-orbit.e);
     orbit.pe = orbit.sma*(1+orbit.e);
+    orbit.period = 3;
 }
 
 function makeOrbit(o,mat) {
@@ -49,7 +50,7 @@ function makeOrbit(o,mat) {
 			if (!isAngle) {
 			  theta = theta.map(function(t){ return (2*t-1)*(o.e <= 1 ? Math.PI : Math.acos(-1/o.e)-EPS);});
 			}
-			var r = theta.map( function(theta){ return Math.max(Math.abs(o.sma*(1-o.e^2)),2*o.sma*o.e)/(1+o.e*Math.cos(theta))} );
+			var r = theta.map( function(theta){ return Math.max(Math.abs(o.sma*(1-o.e*o.e)),2*o.sma*o.e)/(1+o.e*Math.cos(theta))} );
 			// ew.
 			//r = r.map( function(r){ return Math.min(r,MAXDIST);});
 			var val = r.map( function(r,i){ return new th.Vector3( 
@@ -62,7 +63,7 @@ function makeOrbit(o,mat) {
 	var curve = new (th.Curve.create( function(){}, pt ));
 	var geo = new th.Geometry();
 	// TODO: Less arbitrary sampling?	
-	var a=[]; for(i=0; i<=100; i++){ a[i] = 2*(i-50)/100*( o.e<=1 ? 2*Math.PI : Math.acos(-1/o.e)-EPS) ; }
+	var a=[]; for(i=0; i<=200; i++){ a[i] = 2*(i-100)/200*( o.e<=1 ? 2*Math.PI : Math.acos(-1/o.e)-EPS) ; }
 	geo.vertices = geo.vertices.concat( curve.getPoint( a, true ) );
 	o.curve = curve;
 
@@ -113,15 +114,16 @@ function init() {
     stats.domElement.style.top = '0px';
     document.body.appendChild( stats.domElement );
     
-    gui = new dat.GUI();
-    gui.add( orbit, 'e' ).name("Eccentricity").min(0).max(5).step(0.01).onChange( updateOrbit ); 
-    gui.add( orbit, 'inc' ).name("Inclination").min(0).max(Math.PI).step(Math.PI/50).onChange( updateOrbit );
-    gui.add( orbit, 'argp' ).name("Argument of Periapsis").min(0).max(2*Math.PI).step(Math.PI/100).onChange( updateOrbit );
-    gui.add( orbit, 'sma' ).name("Semi-major axis").min(1).max(10).onChange( updateOrbit );
-    gui.add( orbit, 'laan' ).name("Longitude of Ascending Node").min(0).max(Math.PI*2).onChange( updateOrbit );
-    gui.add( parentbody.position, 'x' ).name("Parent x").min(-5).max(5).onChange( updateOrbit );
-    gui.add( parentbody.position, 'y' ).name("Parent y").min(-5).max(5).onChange( updateOrbit );
-    gui.add( parentbody.position, 'z' ).name("Parent z").min(-5).max(5).onChange( updateOrbit );
+    gui = new dat.GUI({width: 400});
+    gui.add( orbit, 'e' ).min(0).max(5).step(0.01).name("Eccentricity").onChange( updateOrbit ); 
+    gui.add( orbit, 'inc' ).min(0).max(Math.PI).step(Math.PI/50).name("Inclination").onChange( updateOrbit );
+    gui.add( orbit, 'argp' ).min(0).max(2*Math.PI).step(Math.PI/100).name("Argument of Periapsis").onChange( updateOrbit );
+    gui.add( orbit, 'sma' ).min(1).max(10).name("Semi-major axis").onChange( updateOrbit );
+    gui.add( orbit, 'laan').min(0).max(Math.PI*2).name("Longitude of Ascending Node").onChange(updateOrbit);
+    gui.add( orbit, 'period').min(0.5).max(10).name("Period ( arbitrary units ~ s )").onChange(updateOrbit);
+    gui.add( parentbody.position, 'x' ).min(-5).max(5).name("Parent x").onChange( updateOrbit );
+    gui.add( parentbody.position, 'y' ).min(-5).max(5).name("Parent y").onChange( updateOrbit );
+    gui.add( parentbody.position, 'z' ).min(-5).max(5).name("Parent z").onChange( updateOrbit );
     // scene
     scene = new th.Scene();
 
@@ -173,31 +175,50 @@ function init() {
 	
     var s = new th.SphereGeometry(0.5,16,16);
     m = new th.Mesh(s,material);
-//    sphere.add(m);
-    scene.add(m)
+    sphere.add(m);
+//    scene.add(m)
 
     // this is somehow necessary for the applyMatrix to work?!
     // TODO: fix horrifying kludge
     //renderer.render(scene, camera);
 
     //m.position.add( sphere.position );
-    m.position.add( orbit.curve.getPoint(0.7) );
-    m.position.applyMatrix4( orbit.rotMatrix.setPosition(sphere.position) );
+    m.position.copy( orbit.curve.getPoint(Math.PI/2, true) );
+    m.position.applyMatrix4( orbit.rotMatrix );
 
 }
 
+// "typical" frame dt in s
+var dt = 1/3;
 
 function animate() {
     requestAnimationFrame(animate);
     controls.update();
-    m.position.copy( orbit.curve.getPoint(Date.now()/1000%10*Math.PI*2/10,true));
+
+    //var ang = m.position.normalize().dot( orbit.curve.getPoint(0,true).normalize() ));
+    var inv = (new th.Matrix4).getInverse(orbit.rotMatrix);
+    var rvec = m.position.clone().applyMatrix4(inv);
+    r = rvec.length();
+    var ang = Math.atan2(rvec.z, rvec.x);
+    //var ang = Math.acos(orbit.curve.getPoint(0,true).sub(m.position).normalize().dot(m.position.normalize()));
+    //console.log(ang*180/Math.PI + ( ang<0 ? 360 : 0 ));
+    // Kepler's second law, yo
+    //delta = ( 1/(r*r) * 2 * Math.PI * orbit.sma*orbit.sma * Math.sqrt( 1 - orbit.e*orbit.e )) * dt / orbit.period;
+    delta = ( 1/(r*r) * 2 * Math.PI * orbit.sma*orbit.sma ) * dt / orbit.period;
+    ang += delta;
+    ang = ang%(2*Math.PI);
+    //m.position.copy( orbit.curve.getPoint( (Date.now()/500%10-(orbit.e<=1 ? 0 : 5))*(orbit.e <= 1 ? Math.PI : Math.acos(-1/orbit.e)-EPS )*2/10,true ) );
+    m.position.copy( orbit.curve.getPoint( ang, true ));
     //m.position.copy( orbit.curve.getPoint(Math.PI*1/2,true));
-    m.position.applyMatrix4( orbit.rotMatrix.setPosition(sphere.position) );
+    m.position.applyMatrix4( orbit.rotMatrix );
 
     renderer.render(scene, camera);
     stats.update()
 
 }
+
+// Why doesn't javascript have this?!
+Math.clamp = function(a,min,max) { return ( a<min ? min : ( a>max ? max : a ) ); }
 
 orbitinit();
 init();
