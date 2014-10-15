@@ -27,17 +27,25 @@ function orbitinit() {
     orbit.parent = parentbody;
 
     // orbital elements
-    orbit.e = 0.8;
-    orbit.sma = 1;
+    orbit.e = 0.3;
+    orbit.sma = 3;
     orbit.inc = Math.PI*1/6;
     orbit.laan = Math.PI*0/2;
-    orbit.argp = Math.PI*0/4;
+    orbit.argp = Math.PI*1/4;
+    orbit.grav = 50;
+
+    // TODO: use this to get true anomaly at epoch? not a huge deal really since Telemachus reports true anomaly
     orbit.mae = 0.0;
     
     // derived quantities
     orbit.apo = orbit.sma*(1-orbit.e);
     orbit.pe = orbit.sma*(1+orbit.e);
-    orbit.period = 3;
+
+    // these are for control by GUI ONLY!
+    orbit.incdeg = orbit.inc*180/Math.PI;
+    orbit.laandeg = orbit.laan*180/Math.PI;
+    orbit.argpdeg = orbit.argp*180/Math.PI;
+
 }
 
 function makeOrbit(o,mat) {
@@ -84,7 +92,17 @@ function makeOrbit(o,mat) {
 }
 
 
-var updateOrbit = function(){ sphere.position.copy( parentbody.position ); sphere.remove(line); line = makeOrbit(orbit,line.material); sphere.add(line)  };
+var updateOrbit = function(){ 
+
+	orbit.inc = orbit.incdeg*Math.PI/180;
+	orbit.argp = orbit.argpdeg*Math.PI/180;
+	orbit.laan = orbit.laandeg*Math.PI/180;
+
+	sphere.position.copy( parentbody.position ); 
+	sphere.remove(line); 
+	line = makeOrbit(orbit,line.material); 
+	sphere.add(line)  
+};
 
 function init() {
 
@@ -114,13 +132,13 @@ function init() {
     stats.domElement.style.top = '0px';
     document.body.appendChild( stats.domElement );
     
-    gui = new dat.GUI({width: 400});
+    gui = new dat.GUI({width: 500});
     gui.add( orbit, 'e' ).min(0).max(5).step(0.01).name("Eccentricity").onChange( updateOrbit ); 
-    gui.add( orbit, 'inc' ).min(0).max(Math.PI).step(Math.PI/50).name("Inclination").onChange( updateOrbit );
-    gui.add( orbit, 'argp' ).min(0).max(2*Math.PI).step(Math.PI/100).name("Argument of Periapsis").onChange( updateOrbit );
+    gui.add( orbit, 'incdeg' ).min(0).max(180).step(1).name("Inclination (deg)").onChange( updateOrbit );
+    gui.add( orbit, 'argpdeg' ).min(0).max(360).step(1).name("Argument of Periapsis (deg)").onChange( updateOrbit );
     gui.add( orbit, 'sma' ).min(1).max(10).name("Semi-major axis").onChange( updateOrbit );
-    gui.add( orbit, 'laan').min(0).max(Math.PI*2).name("Longitude of Ascending Node").onChange(updateOrbit);
-    gui.add( orbit, 'period').min(0.5).max(10).name("Period ( arbitrary units ~ s )").onChange(updateOrbit);
+    gui.add( orbit, 'laandeg').min(0).max(360).step(1).name("Longitude of Ascending Node (deg)").onChange(updateOrbit);
+    gui.add( orbit, 'grav').min(0.5).max(200).name("Gravitational parameter (arbitrary units)").onChange(updateOrbit);
     gui.add( parentbody.position, 'x' ).min(-5).max(5).name("Parent x").onChange( updateOrbit );
     gui.add( parentbody.position, 'y' ).min(-5).max(5).name("Parent y").onChange( updateOrbit );
     gui.add( parentbody.position, 'z' ).min(-5).max(5).name("Parent z").onChange( updateOrbit );
@@ -189,7 +207,7 @@ function init() {
 }
 
 // "typical" frame dt in s
-var dt = 1/3;
+var dt = 16e-3;
 
 function animate() {
     requestAnimationFrame(animate);
@@ -204,8 +222,8 @@ function animate() {
     //console.log(ang*180/Math.PI + ( ang<0 ? 360 : 0 ));
     // Kepler's second law, yo
     //delta = ( 1/(r*r) * 2 * Math.PI * orbit.sma*orbit.sma * Math.sqrt( 1 - orbit.e*orbit.e )) * dt / orbit.period;
-    delta = ( 1/(r*r) * 2 * Math.PI * orbit.sma*orbit.sma ) * dt / orbit.period;
-    ang += delta;
+    delta = ( 1/(r*r) * 2 * Math.PI * orbit.sma*orbit.sma * ( orbit.e < 1 ? Math.sqrt( 1- orbit.e*orbit.e) : 1 ) ) * dt / Math.pow(orbit.sma * 4*Math.PI*Math.PI/orbit.grav,2/3);
+    ang -= delta;
     ang = ang%(2*Math.PI);
     //m.position.copy( orbit.curve.getPoint( (Date.now()/500%10-(orbit.e<=1 ? 0 : 5))*(orbit.e <= 1 ? Math.PI : Math.acos(-1/orbit.e)-EPS )*2/10,true ) );
     m.position.copy( orbit.curve.getPoint( ang, true ));
