@@ -7,6 +7,17 @@ var parent, renderer, scene, camera, controls, pivot1, pivot2, pivot3, stats, gu
 
 var line,sphere,refdir,refplane,orbit,parentbody;
 
+function webglAvailable() {
+    try {
+        var canvas = document.createElement("canvas");
+        return !!
+            window.WebGLRenderingContext && 
+            (canvas.getContext("webgl") || 
+                canvas.getContext("experimental-webgl"));
+    } catch(e) { 
+        return false;
+    } 
+}
 
 function onDocumentMouseDown(event) {
     mouseDown = true;
@@ -121,7 +132,8 @@ function init() {
     document.body.appendChild(info);
     // renderer
     //renderer = new th.CanvasRenderer();
-    renderer = new th.WebGLRenderer({antialias:true, preserveDrawingBuffer: true});
+    //renderer = new th.WebGLRenderer({antialias:true, preserveDrawingBuffer: true});
+    renderer = webglAvailable() ? new THREE.WebGLRenderer({antialias: true, preserveDrawingBuffer:true}) : new THREE.CanvasRenderer();
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.physicallyBasedShading = true;
     document.body.appendChild(renderer.domElement);
