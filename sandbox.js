@@ -235,7 +235,7 @@ function animate() {
     requestAnimationFrame(animate);
     controls.update();
 
-    if (orbit.animate || orbit.manual ) {
+    if (orbit.animate) {
 	    var inv = (new th.Matrix4).getInverse(orbit.rotMatrix);
 	    var rvec = m.position.clone().applyMatrix4(inv);
 	    r = rvec.length();
@@ -245,9 +245,9 @@ function animate() {
 	    // TODO: embed this minus sign in getPoint or elsewhere?
 	    ang -= delta;
 	    // shit don't work
-	    if ( orbit.animate ) { orbit.nu = ( ang<0 ? Math.PI : 0)-ang; orbit.nudeg = orbit.nu*180/Math.PI; }
+	    //if ( orbit.animate ) { orbit.nu = ( ang<0 ? Math.PI : 0)-ang; orbit.nudeg = orbit.nu*180/Math.PI; }
 	    ang = ang%(2*Math.PI);
-	    m.position.copy( orbit.curve.getPoint( orbit.manual? -orbit.nu : ang, true ));
+	    m.position.copy( orbit.curve.getPoint( ang, true ));
 	    m.position.applyMatrix4( orbit.rotMatrix );
     }
 
