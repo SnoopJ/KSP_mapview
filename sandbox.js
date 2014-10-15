@@ -7,6 +7,8 @@ var parent, renderer, scene, camera, controls, pivot1, pivot2, pivot3, stats, gu
 
 var line,sphere,refdir,refplane,orbit,parentbody;
 
+// with thanks to Abtin Forouzandeh of StackOverflow
+// http://stackoverflow.com/a/25153614
 function webglAvailable() {
     try {
         var canvas = document.createElement("canvas");
@@ -45,6 +47,8 @@ function orbitinit() {
     orbit.argp = Math.PI*1/4;
     orbit.grav = 50;
 
+    orbit.nu = 0;
+
     // TODO: use this to get true anomaly at epoch? not a huge deal really since Telemachus reports true anomaly
     orbit.mae = 0.0;
     
@@ -56,6 +60,8 @@ function orbitinit() {
     orbit.incdeg = orbit.inc*180/Math.PI;
     orbit.laandeg = orbit.laan*180/Math.PI;
     orbit.argpdeg = orbit.argp*180/Math.PI;
+    orbit.nudeg = orbit.nu*180/Math.PI;
+    orbit.animate = true;
 
 }
 
@@ -102,12 +108,14 @@ function makeOrbit(o,mat) {
 	return orb;
 }
 
-
+var setNu = function() { orbit.animate = false; updateOrbit(); }
 var updateOrbit = function(){ 
 
 	orbit.inc = orbit.incdeg*Math.PI/180;
 	orbit.argp = orbit.argpdeg*Math.PI/180;
 	orbit.laan = orbit.laandeg*Math.PI/180;
+	orbit.nu = orbit.nudeg*Math.PI/180;
+	orbit.manual = !orbit.animate;
 
 	sphere.position.copy( parentbody.position ); 
 	sphere.remove(line); 
@@ -154,6 +162,8 @@ function init() {
     gui.add( parentbody.position, 'x' ).min(-5).max(5).name("Parent x").onChange( updateOrbit );
     gui.add( parentbody.position, 'y' ).min(-5).max(5).name("Parent y").onChange( updateOrbit );
     gui.add( parentbody.position, 'z' ).min(-5).max(5).name("Parent z").onChange( updateOrbit );
+    gui.add( orbit, 'animate' ).listen().name("Animate orbit?").onChange( updateOrbit );
+    //gui.add( orbit, 'nudeg').min(0).max(360).listen().name("True Anomaly (deg)").onChange( setNu );
     // scene
     scene = new th.Scene();
 
@@ -225,22 +235,21 @@ function animate() {
     requestAnimationFrame(animate);
     controls.update();
 
-    //var ang = m.position.normalize().dot( orbit.curve.getPoint(0,true).normalize() ));
-    var inv = (new th.Matrix4).getInverse(orbit.rotMatrix);
-    var rvec = m.position.clone().applyMatrix4(inv);
-    r = rvec.length();
-    var ang = Math.atan2(rvec.z, rvec.x);
-    //var ang = Math.acos(orbit.curve.getPoint(0,true).sub(m.position).normalize().dot(m.position.normalize()));
-    //console.log(ang*180/Math.PI + ( ang<0 ? 360 : 0 ));
-    // Kepler's second law, yo
-    //delta = ( 1/(r*r) * 2 * Math.PI * orbit.sma*orbit.sma * Math.sqrt( 1 - orbit.e*orbit.e )) * dt / orbit.period;
-    delta = ( 1/(r*r) * 2 * Math.PI * orbit.sma*orbit.sma * ( orbit.e < 1 ? Math.sqrt( 1- orbit.e*orbit.e) : 1 ) ) * dt / Math.pow(orbit.sma * 4*Math.PI*Math.PI/orbit.grav,2/3);
-    ang -= delta;
-    ang = ang%(2*Math.PI);
-    //m.position.copy( orbit.curve.getPoint( (Date.now()/500%10-(orbit.e<=1 ? 0 : 5))*(orbit.e <= 1 ? Math.PI : Math.acos(-1/orbit.e)-EPS )*2/10,true ) );
-    m.position.copy( orbit.curve.getPoint( ang, true ));
-    //m.position.copy( orbit.curve.getPoint(Math.PI*1/2,true));
-    m.position.applyMatrix4( orbit.rotMatrix );
+    if (orbit.animate || orbit.manual ) {
+	    var inv = (new th.Matrix4).getInverse(orbit.rotMatrix);
+	    var rvec = m.position.clone().applyMatrix4(inv);
+	    r = rvec.length();
+	    var ang = Math.atan2(rvec.z, rvec.x);
+	    // Kepler's second law, yo
+	    delta = ( 1/(r*r) * 2 * Math.PI * orbit.sma*orbit.sma * ( orbit.e < 1 ? Math.sqrt( 1- orbit.e*orbit.e) : 1 ) ) * dt / Math.pow(orbit.sma * 4*Math.PI*Math.PI/orbit.grav,2/3);
+	    // TODO: embed this minus sign in getPoint or elsewhere?
+	    ang -= delta;
+	    // shit don't work
+	    if ( orbit.animate ) { orbit.nu = ( ang<0 ? Math.PI : 0)-ang; orbit.nudeg = orbit.nu*180/Math.PI; }
+	    ang = ang%(2*Math.PI);
+	    m.position.copy( orbit.curve.getPoint( orbit.manual? -orbit.nu : ang, true ));
+	    m.position.applyMatrix4( orbit.rotMatrix );
+    }
 
     renderer.render(scene, camera);
     stats.update()
