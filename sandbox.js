@@ -41,12 +41,14 @@ function orbitinit() {
 
 function makeOrbit(o,mat) {
 	// Create the THREE.Line associated with an orbit
-	var pt = function(t) { 
+	var pt = function(t,isAngle) { 
 			// t: 0 -> 1
 			// theta: -pi -> pi (for elliptical)
 			var theta=[];
 			theta = theta.concat(t);
-			theta = theta.map(function(t){ return (2*t-1)*(o.e <= 1 ? Math.PI : Math.acos(-1/o.e)-EPS);});
+			if (!isAngle) {
+			  theta = theta.map(function(t){ return (2*t-1)*(o.e <= 1 ? Math.PI : Math.acos(-1/o.e)-EPS);});
+			}
 			var r = theta.map( function(theta){ return Math.max(Math.abs(o.sma*(1-o.e^2)),2*o.sma*o.e)/(1+o.e*Math.cos(theta))} );
 			// ew.
 			//r = r.map( function(r){ return Math.min(r,MAXDIST);});
@@ -60,8 +62,8 @@ function makeOrbit(o,mat) {
 	var curve = new (th.Curve.create( function(){}, pt ));
 	var geo = new th.Geometry();
 	// TODO: Less arbitrary sampling?	
-	var a=[]; for(i=0; i<=100; i++){ a[i] = i/100; }
-	geo.vertices = geo.vertices.concat( curve.getPoint( a ) );
+	var a=[]; for(i=0; i<=100; i++){ a[i] = 2*(i-50)/100*( o.e<=1 ? 2*Math.PI : Math.acos(-1/o.e)-EPS) ; }
+	geo.vertices = geo.vertices.concat( curve.getPoint( a, true ) );
 	o.curve = curve;
 
 	var orb;
@@ -81,7 +83,7 @@ function makeOrbit(o,mat) {
 }
 
 
-var updateOrbit = function(){ sphere.remove(line); line = makeOrbit(orbit,line.material); sphere.add(line)  };
+var updateOrbit = function(){ sphere.position.copy( parentbody.position ); sphere.remove(line); line = makeOrbit(orbit,line.material); sphere.add(line)  };
 
 function init() {
 
@@ -117,6 +119,9 @@ function init() {
     gui.add( orbit, 'argp' ).name("Argument of Periapsis").min(0).max(2*Math.PI).step(Math.PI/100).onChange( updateOrbit );
     gui.add( orbit, 'sma' ).name("Semi-major axis").min(1).max(10).onChange( updateOrbit );
     gui.add( orbit, 'laan' ).name("Longitude of Ascending Node").min(0).max(Math.PI*2).onChange( updateOrbit );
+    gui.add( parentbody.position, 'x' ).name("Parent x").min(-5).max(5).onChange( updateOrbit );
+    gui.add( parentbody.position, 'y' ).name("Parent y").min(-5).max(5).onChange( updateOrbit );
+    gui.add( parentbody.position, 'z' ).name("Parent z").min(-5).max(5).onChange( updateOrbit );
     // scene
     scene = new th.Scene();
 
@@ -185,7 +190,8 @@ function init() {
 function animate() {
     requestAnimationFrame(animate);
     controls.update();
-    m.position.copy( orbit.curve.getPoint((Date.now()/75 % 100)/100));
+    m.position.copy( orbit.curve.getPoint(Date.now()/1000%10*Math.PI*2/10,true));
+    //m.position.copy( orbit.curve.getPoint(Math.PI*1/2,true));
     m.position.applyMatrix4( orbit.rotMatrix.setPosition(sphere.position) );
 
     renderer.render(scene, camera);
