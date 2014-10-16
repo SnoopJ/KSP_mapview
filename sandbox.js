@@ -7,19 +7,10 @@ var parent, renderer, scene, camera, controls, pivot1, pivot2, pivot3, stats, gu
 
 var line,sphere,refdir,refplane,orbit,parentbody;
 
-// with thanks to Abtin Forouzandeh of StackOverflow
-// http://stackoverflow.com/a/25153614
-function webglAvailable() {
-    try {
-        var canvas = document.createElement("canvas");
-        return !!
-            window.WebGLRenderingContext && 
-            (canvas.getContext("webgl") || 
-                canvas.getContext("experimental-webgl"));
-    } catch(e) { 
-        return false;
-    } 
-}
+//var defaultUrl="ws://localhost:8085/datalink"
+var defaultUrl="ws://echo.websocket.org"
+//var defaultUrl="ws://192.168.1.2:8085/datalink"
+var ws = openSocket(defaultUrl);
 
 function onDocumentMouseDown(event) {
     mouseDown = true;
