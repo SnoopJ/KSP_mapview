@@ -7,8 +7,8 @@ var parent, renderer, scene, camera, controls, pivot1, pivot2, pivot3, stats, gu
 
 var line,sphere,refdir,refplane,orbit,parentbody;
 
-//var defaultUrl="ws://localhost:8085/datalink"
-var defaultUrl="ws://echo.websocket.org"
+var defaultUrl="ws://localhost:8085/datalink"
+//var defaultUrl="ws://echo.websocket.org"
 //var defaultUrl="ws://192.168.1.2:8085/datalink"
 var ws = openSocket(defaultUrl);
 
@@ -159,7 +159,7 @@ function init() {
     scene = new th.Scene();
 
     // camera
-    camera = new th.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 100);
+    camera = new th.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 10000);
     camera.position.set(20, 20, 20);
 
     // controls

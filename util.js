@@ -10,7 +10,7 @@ function isEmpty(o) {
 function openSocket(url) { 
     var ws = new WebSocket(url);
     ws.onmessage = (function(m) { var data = JSON.parse(m.data); if(!isEmpty(data)) { console.log(data) } })
-    ws.onclose = (function() { console.log("WebSocket closed!") })
+    ws.onclose = (function(m) { console.log("WebSocket closed!"); console.log(m) })
     ws.isopen = (function() { return this.readyState == this.OPEN } )
     return ws
 }
@@ -19,9 +19,13 @@ var telemachus = {
 	rate : 2000
 	,subs : []
 	,update : (function(){ 
-		var response = { data: [] }
-		for( var i=0, l=subs.length; i < l; i++ ) { 
-			response.data[subs[i]] = this[subs[i]]
+		var response = { data: "" }
+		var a=[]
+		for( var i=0, l=this.subs.length; i < l; i++ ) { 
+			a.push( [this.subs[i], this[this.subs[i]]])
+			response.data = JSON.stringify(a)
+			console.log( "sending response...")
+			console.log(response)
 			ws.onmessage( response )
 		} 
 		})
