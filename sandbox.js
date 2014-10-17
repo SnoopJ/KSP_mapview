@@ -7,12 +7,35 @@ var parent, renderer, scene, camera, controls, pivot1, pivot2, pivot3, stats, gu
 
 var line,sphere,refdir,refplane,orbit,parentbody;
 
+// Default to 3s resolution
+var defaultRate=3000
 var defaultUrl="ws://localhost:8085/datalink"
 //var defaultUrl="ws://echo.websocket.org"
 //var defaultUrl="ws://192.168.1.2:8085/datalink"
-var ws = openSocket(defaultUrl);
+function TMhandler(m) { 
+	var data = JSON.parse(m.data); if(!isEmpty(data)) { 
+		//console.log( m );
+		orbit.e = data["o.eccentricity"] ? data["o.eccentricity"] : orbit.e; 
+		orbit.inc = data["o.inclination"] ? data["o.inclination"]*Math.PI/180 : orbit.inc;
+		orbit.argp = data["o.argumentOfPeriapsis"] ? data["o.argumentOfPeriapsis"] *Math.PI/180 : orbit.argp;
+		orbit.sma = data["o.sma"] ? data["o.sma"] : orbit.sma;
+		orbit.lan = data["o.lan"] ? data["o.lan"]*Math.PI/180 : orbit.lan;
+		orbit.nu = data["o.trueAnomaly"] ? data["o.trueAnomaly"]*Math.PI/180 : orbit.nu;
+		orbit.period = data["o.period"] ? data["o.period"] : orbit.period;
+		orbit.t = m.timeStamp;
+		orbit.updated = true;
+		updateOrbit() 
+	} 
+} 
 
-function onDocumentMouseDown(event) {
+var ws = openSocket(defaultUrl,TMhandler);
+setTimeout( sendCmd( {rate:defaultRate} ), 2000)
+subscribe( "o.eccentricity", "o.inclination", "o.argumentOfPeriapsis", "o.sma", "o.lan", "o.trueAnomaly", "o.period", "t.timeWarp" )
+
+// debug, emulate Telemachus responses
+var fakeit = false;
+
+/*function onDocumentMouseDown(event) {
     mouseDown = true;
     event.preventDefault();
     if ( event.button == 2 ) { // R-click
@@ -20,7 +43,7 @@ function onDocumentMouseDown(event) {
     }
 }
     document.addEventListener('mousedown', onDocumentMouseDown, false);
-
+*/
 function orbitinit() {
     parentbody = new Object();
     parentbody.position = new th.Vector3(5, 2, 1);
@@ -39,6 +62,7 @@ function orbitinit() {
     orbit.grav = 50;
 
     orbit.nu = 0;
+    orbit.period = 1;
 
     // TODO: use this to get true anomaly at epoch? not a huge deal really since Telemachus reports true anomaly
     orbit.mae = 0.0;
@@ -52,7 +76,7 @@ function orbitinit() {
     orbit.laandeg = orbit.laan*180/Math.PI;
     orbit.argpdeg = orbit.argp*180/Math.PI;
     orbit.nudeg = orbit.nu*180/Math.PI;
-    orbit.animate = true;
+    orbit.animate = false;
 
 }
 
@@ -102,10 +126,10 @@ function makeOrbit(o,mat) {
 var setNu = function() { orbit.animate = false; updateOrbit(); }
 var updateOrbit = function(){ 
 
-	orbit.inc = orbit.incdeg*Math.PI/180;
+/*	orbit.inc = orbit.incdeg*Math.PI/180;
 	orbit.argp = orbit.argpdeg*Math.PI/180;
 	orbit.laan = orbit.laandeg*Math.PI/180;
-	orbit.nu = orbit.nudeg*Math.PI/180;
+	orbit.nu = orbit.nudeg*Math.PI/180;*/
 	orbit.manual = !orbit.animate;
 
 	sphere.position.copy( parentbody.position ); 
@@ -144,14 +168,14 @@ function init() {
     document.body.appendChild( stats.domElement );
     
     gui = new dat.GUI({width: 500});
-    gui.add( orbit, 'e' ).min(0).max(5).step(0.01).name("Eccentricity").onChange( updateOrbit ); 
-    gui.add( orbit, 'incdeg' ).min(0).max(180).step(1).name("Inclination (deg)").onChange( updateOrbit );
-    gui.add( orbit, 'argpdeg' ).min(0).max(360).step(1).name("Argument of Periapsis (deg)").onChange( updateOrbit );
-    gui.add( orbit, 'sma' ).min(1).max(10).name("Semi-major axis").onChange( updateOrbit );
-    gui.add( orbit, 'laandeg').min(0).max(360).step(1).name("Longitude of Ascending Node (deg)").onChange(updateOrbit);
-    gui.add( orbit, 'grav').min(0.5).max(200).name("Gravitational parameter (arbitrary units)").onChange(updateOrbit);
-    gui.add( parentbody.position, 'x' ).min(-5).max(5).name("Parent x").onChange( updateOrbit );
-    gui.add( parentbody.position, 'y' ).min(-5).max(5).name("Parent y").onChange( updateOrbit );
+    gui.add( orbit, 'e' ).min(0).max(5).step(0.01).listen().name("Eccentricity").onChange( updateOrbit ); 
+    gui.add( orbit, 'incdeg' ).min(0).max(180).step(1).listen().name("Inclination (deg)").onChange( updateOrbit );
+    gui.add( orbit, 'argpdeg' ).min(0).max(360).step(1).listen().name("Argument of Periapsis (deg)").onChange( updateOrbit );
+    gui.add( orbit, 'sma' ).min(1).max(10).listen().name("Semi-major axis").onChange( updateOrbit );
+    gui.add( orbit, 'laandeg').min(0).max(360).step(1).listen().name("Longitude of Ascending Node (deg)").onChange(updateOrbit);
+    gui.add( orbit, 'grav').min(0.5).max(200).listen().name("Gravitational parameter (arbitrary units)").onChange(updateOrbit);
+    gui.add( parentbody.position, 'x' ).min(-5).max(5).listen().name("Parent x").onChange( updateOrbit );
+    gui.add( parentbody.position, 'y' ).min(-5).max(5).listen().name("Parent y").onChange( updateOrbit );
     gui.add( parentbody.position, 'z' ).min(-5).max(5).name("Parent z").onChange( updateOrbit );
     gui.add( orbit, 'animate' ).listen().name("Animate orbit?").onChange( updateOrbit );
     //gui.add( orbit, 'nudeg').min(0).max(360).listen().name("True Anomaly (deg)").onChange( setNu );
@@ -159,21 +183,21 @@ function init() {
     scene = new th.Scene();
 
     // camera
-    camera = new th.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 10000);
-    camera.position.set(20, 20, 20);
+    camera = new th.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 1e7);
+    camera.position.set(300e3, 20, 300e3);
 
     // controls
     // having renderer.domElement here avoids capturing input for dat.GUI 
     controls = new th.OrbitControls(camera, renderer.domElement);
 
     // axes
-    scene.add(new th.AxisHelper(20));
+    //scene.add(new th.AxisHelper(20));
 
             
     var material = new th.LineBasicMaterial({
         color: 0xFFFFFF,
         opacity: 1,
-	linewidth: 3
+	linewidth: 1e3
     });
 
     line = makeOrbit(orbit,material);
@@ -187,7 +211,7 @@ function init() {
     m.multiply( (new th.Matrix4).makeRotationAxis( parentbody.refnml, orbit.argp ));
     line.setRotationFromMatrix(m);*/
 
-    var geometry = new th.SphereGeometry(1, 16, 16);
+    var geometry = new th.SphereGeometry(600e3, 16, 16);
     geometry.z = 10;
     var spherematerial = new th.MeshBasicMaterial({
         color: 0x0000ff,
@@ -199,12 +223,12 @@ function init() {
     sphere.add(line);
     scene.add(sphere);
     
-    var arrow = new th.ArrowHelper( parentbody.refdir, new th.Vector3(0,0,0), 5, 0x00ff00 );
-    var uparrow = new th.ArrowHelper( parentbody.refnml, new th.Vector3(0,0,0), 5, 0xff00ff );
-    sphere.add(arrow);
-    sphere.add(uparrow); 
+    //var arrow = new th.ArrowHelper( parentbody.refdir, new th.Vector3(0,0,0), 5, 0x00ff00 );
+    //var uparrow = new th.ArrowHelper( parentbody.refnml, new th.Vector3(0,0,0), 5, 0xff00ff );
+    //sphere.add(arrow);
+    //sphere.add(uparrow); 
 	
-    var s = new th.SphereGeometry(0.5,16,16);
+    var s = new th.SphereGeometry(5,16,16);
     m = new th.Mesh(s,material);
     sphere.add(m);
 //    scene.add(m)
@@ -238,9 +262,14 @@ function animate() {
 	    // shit don't work
 	    //if ( orbit.animate ) { orbit.nu = ( ang<0 ? Math.PI : 0)-ang; orbit.nudeg = orbit.nu*180/Math.PI; }
 	    ang = ang%(2*Math.PI);
-	    m.position.copy( orbit.curve.getPoint( ang, true ));
-	    m.position.applyMatrix4( orbit.rotMatrix );
+    } else {
+	    ang = -orbit.nu;	
+	    // would like to interpolate, t.timeWarp is broken in Telemachus
+	    //ang = -orbit.nu - (Date.now()-orbit.timeStamp)/1000*orbit.timewarp*2*Math.PI/orbit.period;
     }
+
+    m.position.copy( orbit.curve.getPoint( ang, true ));
+    m.position.applyMatrix4( orbit.rotMatrix );
 
     renderer.render(scene, camera);
     stats.update()

@@ -1,5 +1,4 @@
-// debug, emulate Telemachus responses
-var fakeit = true;
+
 
 function isEmpty(o) {
     if (!(o instanceof Object)) { console.warn("isEmpty was given non-object input"); return }
@@ -7,9 +6,13 @@ function isEmpty(o) {
     return true
 }
     
-function openSocket(url) { 
+function openSocket(url,handler) { 
     var ws = new WebSocket(url);
-    ws.onmessage = (function(m) { var data = JSON.parse(m.data); if(!isEmpty(data)) { console.log(data) } })
+    if( typeof handler == "function" ) {
+      ws.onmessage = handler
+    } else {
+      ws.onmessage = (function(m) { var data = JSON.parse(m.data); if(!isEmpty(data)) { console.log(data) } })
+    }
     ws.onclose = (function(m) { console.log("WebSocket closed!"); console.log(m) })
     ws.isopen = (function() { return this.readyState == this.OPEN } )
     return ws
@@ -59,7 +62,7 @@ function emulateTelemachus(cmd,ws) {
 
 function sendCmd(cmd) { 
     if (!ws || !ws.isopen()){
-	ws = openSocket(defaultUrl)
+	ws = openSocket(defaultUrl,TMhandler)
     	if (fakeit) {
 	  emulateTelemachus(cmd,ws) 
 	  return 
