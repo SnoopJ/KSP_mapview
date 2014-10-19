@@ -28,14 +28,14 @@ function TMhandler(m) {
 	} 
 } 
 
-var ws = openSocket(defaultUrl,TMhandler);
-setTimeout( sendCmd( {rate:defaultRate} ), 2000)
-subscribe( "o.eccentricity", "o.inclination", "o.argumentOfPeriapsis", "o.sma", "o.lan", "o.trueAnomaly", "o.period", "t.timeWarp" )
+//var ws = openSocket(defaultUrl,TMhandler);
+//setTimeout( sendCmd( {rate:defaultRate} ), 2000)
+//subscribe( "o.eccentricity", "o.inclination", "o.argumentOfPeriapsis", "o.sma", "o.lan", "o.trueAnomaly", "o.period", "t.timeWarp" )
 
 // debug, emulate Telemachus responses
 var fakeit = false;
 
-/*function onDocumentMouseDown(event) {
+function onDocumentMouseDown(event) {
     mouseDown = true;
     event.preventDefault();
     if ( event.button == 2 ) { // R-click
@@ -43,7 +43,8 @@ var fakeit = false;
     }
 }
     document.addEventListener('mousedown', onDocumentMouseDown, false);
-*/
+
+var kerbolsys;
 function orbitinit() {
     parentbody = new Object();
     parentbody.position = new th.Vector3(5, 2, 1);
@@ -55,7 +56,7 @@ function orbitinit() {
 
     // orbital elements
     orbit.e = 0.3;
-    orbit.sma = 3;
+    orbit.sma = 90e4;
     orbit.inc = Math.PI*1/6;
     orbit.laan = Math.PI*0/2;
     orbit.argp = Math.PI*1/4;
@@ -78,6 +79,24 @@ function orbitinit() {
     orbit.nudeg = orbit.nu*180/Math.PI;
     orbit.animate = false;
 
+    system = new th.Object3D()
+    $.getJSON("kerbolsys.json",function(j) {
+	var mat = new th.LineBasicMaterial({
+        //color: 0xFFFFFF,
+        opacity: 1,
+        linewidth: 10
+      })
+	for ( var i=0; i<j.length; i++ ){
+	    j[i].o.parent = parentbody
+	    j[i].o.sma *= 1
+	    j[i].o.e = j[i].o.eccentricity
+	    j[i].o.inc = 2*Math.PI/180*j[i].o.inclination
+	    j[i].o.laan = 2*Math.PI/180*j[i].o.longitudeOfAscendingNode
+	    j[i].o.argp = 2*Math.PI/180*j[i].o.argumentOfPeriapsis
+	    console.log(j[i].o)
+            var orb = makeOrbit( j[i].o )
+      system.add( orb )
+    }})
 }
 
 function makeOrbit(o,mat) {
@@ -126,10 +145,10 @@ function makeOrbit(o,mat) {
 var setNu = function() { orbit.animate = false; updateOrbit(); }
 var updateOrbit = function(){ 
 
-/*	orbit.inc = orbit.incdeg*Math.PI/180;
+	orbit.inc = orbit.incdeg*Math.PI/180;
 	orbit.argp = orbit.argpdeg*Math.PI/180;
 	orbit.laan = orbit.laandeg*Math.PI/180;
-	orbit.nu = orbit.nudeg*Math.PI/180;*/
+	orbit.nu = orbit.nudeg*Math.PI/180;
 	orbit.manual = !orbit.animate;
 
 	sphere.position.copy( parentbody.position ); 
@@ -161,6 +180,12 @@ function init() {
     renderer.physicallyBasedShading = true;
     document.body.appendChild(renderer.domElement);
 
+    window.onresize = (function() { 
+	renderer.setSize(window.innerWidth, window.innerHeight);
+	camera.aspect = window.innerWidth / window.innerHeight;
+	camera.updateProjectionMatrix();
+    });
+
     stats = new Stats();
     stats.domElement.style.position = 'absolute';
     stats.domElement.style.left = '0px';
@@ -178,6 +203,7 @@ function init() {
     gui.add( parentbody.position, 'y' ).min(-5).max(5).listen().name("Parent y").onChange( updateOrbit );
     gui.add( parentbody.position, 'z' ).min(-5).max(5).name("Parent z").onChange( updateOrbit );
     gui.add( orbit, 'animate' ).listen().name("Animate orbit?").onChange( updateOrbit );
+    gui.close()
     //gui.add( orbit, 'nudeg').min(0).max(360).listen().name("True Anomaly (deg)").onChange( setNu );
     // scene
     scene = new th.Scene();
@@ -211,16 +237,17 @@ function init() {
     m.multiply( (new th.Matrix4).makeRotationAxis( parentbody.refnml, orbit.argp ));
     line.setRotationFromMatrix(m);*/
 
-    var geometry = new th.SphereGeometry(600e3, 16, 16);
+    var geometry = new th.SphereGeometry(261e3, 16, 16);
     geometry.z = 10;
     var spherematerial = new th.MeshBasicMaterial({
-        color: 0x0000ff,
+        color: 0xffff00,
 	wireframe: true
     });
     sphere = new th.Mesh(geometry, spherematerial);
     sphere.position.add(parentbody.position);
 
-    sphere.add(line);
+    //sphere.add(line);
+    sphere.add(system);
     scene.add(sphere);
     
     //var arrow = new th.ArrowHelper( parentbody.refdir, new th.Vector3(0,0,0), 5, 0x00ff00 );
