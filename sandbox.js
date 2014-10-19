@@ -210,7 +210,7 @@ function init() {
 
     // camera
     camera = new th.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 1e7);
-    camera.position.set(300e3, 20, 300e3);
+    camera.position.set(1e8, 0, 300e3);
 
     // controls
     // having renderer.domElement here avoids capturing input for dat.GUI 
