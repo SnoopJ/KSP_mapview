@@ -84,7 +84,7 @@ function orbitinit() {
 	var mat = new th.LineBasicMaterial({
         //color: 0xFFFFFF,
         opacity: 1,
-        linewidth: 10
+        linewidth: 1e10
       })
 	for ( var i=0; i<j.length; i++ ){
 	    j[i].o.parent = parentbody
@@ -94,7 +94,7 @@ function orbitinit() {
 	    j[i].o.laan = 2*Math.PI/180*j[i].o.longitudeOfAscendingNode
 	    j[i].o.argp = 2*Math.PI/180*j[i].o.argumentOfPeriapsis
 	    console.log(j[i].o)
-            var orb = makeOrbit( j[i].o )
+            var orb = makeOrbit( j[i].o, mat )
       system.add( orb )
     }})
 }
@@ -128,7 +128,9 @@ function makeOrbit(o,mat) {
 
 	var orb;
 	// material optional
-	if (mat) { orb = new th.Line(geo,mat); } else { orb = new th.Line(geo); }
+	// if (mat) { orb = new th.Line(geo,mat); } else { orb = new th.Line(geo); }
+        orb = new th.Mesh( new th.TubeGeometry( curve, 100, 2e4, 10 ) )
+ 	if (mat) { orb.material = mat }
 
 	// transform to be correct relative to parent
 	var m = (new th.Matrix4).identity();
@@ -207,6 +209,7 @@ function init() {
     //gui.add( orbit, 'nudeg').min(0).max(360).listen().name("True Anomaly (deg)").onChange( setNu );
     // scene
     scene = new th.Scene();
+    bgscene = new th.Scene();
 
     // camera
     camera = new th.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 1e7);
@@ -219,6 +222,32 @@ function init() {
     // axes
     //scene.add(new th.AxisHelper(20));
 
+  var urls = [ 
+    'img/rareden/Skybox_PositiveX.png'
+    ,'img/rareden/Skybox_NegativeX.png'
+    ,'img/rareden/Skybox_PositiveY.png'
+    ,'img/rareden/Skybox_NegativeY.png'
+    ,'img/rareden/Skybox_PositiveZ.png'
+    ,'img/rareden/Skybox_NegativeZ.png'
+  ]
+  
+  cubemap = th.ImageUtils.loadTextureCube(urls)
+  cubemap.format = THREE.RGBFormat;
+  shader = th.ShaderLib.cube
+  shader.uniforms.tCube.value = cubemap
+var cubemat = new THREE.ShaderMaterial( {
+  fragmentShader: shader.fragmentShader,
+  vertexShader: shader.vertexShader,
+  uniforms: shader.uniforms,
+  depthWrite: false,
+  depthTest: false,
+  side: THREE.BackSide
+});
+  //cubemat.side = th.BackSide
+  var scale = 1e10
+  cubegeo = new th.BoxGeometry( scale, scale, scale )
+  cube = new th.Mesh(cubegeo,cubemat)
+  bgscene.add(cube)
             
     var material = new th.LineBasicMaterial({
         color: 0xFFFFFF,
@@ -298,6 +327,9 @@ function animate() {
     m.position.copy( orbit.curve.getPoint( ang, true ));
     m.position.applyMatrix4( orbit.rotMatrix );
 
+    renderer.autoClear = false;;
+    renderer.clear()
+    renderer.render(bgscene, camera);
     renderer.render(scene, camera);
     stats.update()
 
