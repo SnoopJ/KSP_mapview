@@ -223,12 +223,12 @@ function init() {
     //scene.add(new th.AxisHelper(20));
 
   var urls = [ 
-    'img/rareden/Skybox_PositiveX.png'
-    ,'img/rareden/Skybox_NegativeX.png'
-    ,'img/rareden/Skybox_PositiveY.png'
-    ,'img/rareden/Skybox_NegativeY.png'
-    ,'img/rareden/Skybox_PositiveZ.png'
-    ,'img/rareden/Skybox_NegativeZ.png'
+    'img/rareden/Skybox_PositiveX.jpg'
+    ,'img/rareden/Skybox_NegativeX.jpg'
+    ,'img/rareden/Skybox_PositiveY.jpg'
+    ,'img/rareden/Skybox_NegativeY.jpg'
+    ,'img/rareden/Skybox_PositiveZ.jpg'
+    ,'img/rareden/Skybox_NegativeZ.jpg'
   ]
   
   cubemap = th.ImageUtils.loadTextureCube(urls)
