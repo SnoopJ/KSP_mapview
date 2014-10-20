@@ -14,7 +14,6 @@ var defaultUrl="ws://localhost:8085/datalink"
 //var defaultUrl="ws://192.168.1.2:8085/datalink"
 function TMhandler(m) { 
 	var data = JSON.parse(m.data); if(!isEmpty(data)) { 
-		//console.log( m );
 		orbit.e = data["o.eccentricity"] ? data["o.eccentricity"] : orbit.e; 
 		orbit.inc = data["o.inclination"] ? data["o.inclination"]*Math.PI/180 : orbit.inc;
 		orbit.argp = data["o.argumentOfPeriapsis"] ? data["o.argumentOfPeriapsis"] *Math.PI/180 : orbit.argp;
@@ -34,15 +33,36 @@ function TMhandler(m) {
 
 // debug, emulate Telemachus responses
 var fakeit = false;
+var projector = new th.Projector();
+var globalscale = 1e-5;
 
-function onDocumentMouseDown(event) {
+function thing(e) {
     mouseDown = true;
-    event.preventDefault();
-    if ( event.button == 2 ) { // R-click
-	window.open( renderer.domElement.toDataURL("image/png"), "Final");	
-    }
+    e.preventDefault();
+  if (e.button != 2) return;
+    //if ( e.button == 2 ) { // R-click
+//	window.open( renderer.domElement.toDataURL("image/png"), "Final");	
+  mouseVector = new THREE.Vector3();
+  mouseVector.x = 2 * (e.clientX / window.innerWidth ) - 1;
+  mouseVector.y = 1 - 2 * ( e.clientY / window.innerHeight );
+  mouseVector.z = 1.0
+
+  var end = new th.Vector3(); end.copy(mouseVector); end.z = -1.0;
+
+//  console.log(mouseVector.clone().normalize() )
+  raycaster = projector.pickingRay( mouseVector.clone(), camera );
+  raycaster.precision *= 10000
+//  console.log(mouseVector.clone().normalize() )
+//  raycaster.ray.set( camera.position, mouseVector.normalize() );
+
+ // scene.add(new th.ArrowHelper( mouseVector.normalize(), camera.position, 1e5, 0xff0000 ))
+  var intersects = raycaster.intersectObjects( scene.children );
+  for (var i=0; i<intersects.length; i++){
+    intersects[i].object.material.color.setHex( 0xffffff* Math.random() )
+  }
+//}
 }
-    document.addEventListener('mousedown', onDocumentMouseDown, false);
+    document.addEventListener('mousedown', thing, false);
 
 var kerbolsys;
 function orbitinit() {
@@ -88,14 +108,14 @@ function orbitinit() {
       })
 	for ( var i=0; i<j.length; i++ ){
 	    j[i].o.parent = parentbody
-	    j[i].o.sma *= 1
+	    j[i].o.sma *= globalscale
 	    j[i].o.e = j[i].o.eccentricity
 	    j[i].o.inc = 2*Math.PI/180*j[i].o.inclination
 	    j[i].o.laan = 2*Math.PI/180*j[i].o.longitudeOfAscendingNode
 	    j[i].o.argp = 2*Math.PI/180*j[i].o.argumentOfPeriapsis
-	    console.log(j[i].o)
-            var orb = makeOrbit( j[i].o, mat )
-      system.add( orb )
+            var orb = makeOrbit( j[i].o, mat.clone() )
+   //   system.add( orb )
+	scene.add( orb )
     }})
 }
 
@@ -129,7 +149,7 @@ function makeOrbit(o,mat) {
 	var orb;
 	// material optional
 	// if (mat) { orb = new th.Line(geo,mat); } else { orb = new th.Line(geo); }
-        orb = new th.Mesh( new th.TubeGeometry( curve, 100, 2e4, 10 ) )
+        orb = new th.Mesh( new th.TubeGeometry( curve, 100, 2e4*globalscale, 10 ) )
  	if (mat) { orb.material = mat }
 
 	// transform to be correct relative to parent
@@ -172,7 +192,7 @@ function init() {
     info.style.backgroundColor = 'transparent';
     info.style.zIndex = '1';
     info.style.fontFamily = 'Monospace';
-    info.innerHTML = 'Drag your cursor to rotate camera';
+    info.innerHTML = 'Drag your cursor to rotate camera<BR>R-click to \'select\' orbits<BR>Skybox by Rareden';
     document.body.appendChild(info);
     // renderer
     //renderer = new th.CanvasRenderer();
@@ -212,8 +232,8 @@ function init() {
     bgscene = new th.Scene();
 
     // camera
-    camera = new th.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 1e7);
-    camera.position.set(1e8, 0, 300e3);
+    camera = new th.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 1e10*globalscale);
+    camera.position.set(1e8*globalscale, 0, 300e3*globalscale);
 
     // controls
     // having renderer.domElement here avoids capturing input for dat.GUI 
@@ -244,7 +264,7 @@ var cubemat = new THREE.ShaderMaterial( {
   side: THREE.BackSide
 });
   //cubemat.side = th.BackSide
-  var scale = 1e10
+  var scale = 1e10*globalscale
   cubegeo = new th.BoxGeometry( scale, scale, scale )
   cube = new th.Mesh(cubegeo,cubemat)
   bgscene.add(cube)
@@ -266,14 +286,13 @@ var cubemat = new THREE.ShaderMaterial( {
     m.multiply( (new th.Matrix4).makeRotationAxis( parentbody.refnml, orbit.argp ));
     line.setRotationFromMatrix(m);*/
 
-    var geometry = new th.SphereGeometry(261e3, 16, 16);
-    geometry.z = 10;
+    var geometry = new th.SphereGeometry(globalscale*261e3, 16, 16);
+    //geometry.z = 10;
     var spherematerial = new th.MeshBasicMaterial({
         color: 0xffff00,
 	wireframe: true
     });
     sphere = new th.Mesh(geometry, spherematerial);
-    sphere.position.add(parentbody.position);
 
     //sphere.add(line);
     sphere.add(system);
