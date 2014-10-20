@@ -8,6 +8,47 @@
 		    overflow: hidden;
 		}
 	</style>
+   <script type="x-shader/x-vertex" id="vertexShader">
+
+			uniform float amplitude;
+
+			varying vec3 vNormal;
+			varying vec2 vUv;
+
+			void main() {
+
+				vNormal = normal;
+				vUv = ( 0.5 + amplitude ) * uv + vec2( amplitude );
+
+				vec3 newPosition = position + amplitude * normal;
+				gl_Position = projectionMatrix * modelViewMatrix * vec4( newPosition, 1.0 );
+
+			}
+
+		</script> 
+		<script type="x-shader/x-fragment" id="fragmentShader">
+
+			varying vec3 vNormal;
+			varying vec2 vUv;
+
+			uniform vec3 color;
+
+			void main() {
+
+				vec3 light = vec3( 0.5, 0.2, 1.0 );
+				light = normalize( light );
+
+				//float dProd = dot( vNormal, light ) * 0.5 + 0.5;
+				float dProd = 1.0;
+
+				//vec4 tcolor = vec4( vec3(color), 1.0);
+				//vec4 gray = vec4( vec3( tcolor.r * 0.3 + tcolor.g * 0.59 + tcolor.b * 0.11 ), 1.0 );
+
+				gl_FragColor = vec4( color, 1.0 );
+
+			}
+
+		</script>
 <script src="//code.jquery.com/jquery-1.11.0.min.js"></script>
 	<script src="js/three/three.min.js" charset="utf-8" type="text/javascript"></script>
 	<script src="js/three/Stats.js" charset="utf-8" type="text/javascript"></script>

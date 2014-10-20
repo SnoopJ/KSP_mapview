@@ -6,6 +6,11 @@ var th = THREE;
 var parent, renderer, scene, camera, controls, pivot1, pivot2, pivot3, stats, gui;
 
 var line,sphere,refdir,refplane,orbit,parentbody;
+var tubemat = new th.ShaderMaterial({
+	  uniforms: { amplitude: {type:'f', value:0 }, color: {type:'c', value: new th.Color( 0xffffff ) } }
+	  ,vertexShader: document.getElementById( 'vertexShader' ).textContent
+	  ,fragmentShader: document.getElementById( 'fragmentShader' ).textContent
+	})
 
 // Default to 3s resolution
 var defaultRate=3000
@@ -58,7 +63,9 @@ function thing(e) {
  // scene.add(new th.ArrowHelper( mouseVector.normalize(), camera.position, 1e5, 0xff0000 ))
   var intersects = raycaster.intersectObjects( scene.children );
   for (var i=0; i<intersects.length; i++){
-    intersects[i].object.material.color.setHex( 0xffffff* Math.random() )
+    //intersects[i].object.material.color.setHex( 0xffffff* Math.random() )
+    intersects[i].object.material.uniforms.color.value = new th.Color( 0xffffff* Math.random() )
+    console.log(intersects[i])
   }
 //}
 }
@@ -106,14 +113,16 @@ function orbitinit() {
         opacity: 1,
         linewidth: 1e10
       })
-	for ( var i=0; i<j.length; i++ ){
+        	for ( var i=0; i<j.length; i++ ){
 	    j[i].o.parent = parentbody
 	    j[i].o.sma *= globalscale
 	    j[i].o.e = j[i].o.eccentricity
 	    j[i].o.inc = 2*Math.PI/180*j[i].o.inclination
 	    j[i].o.laan = 2*Math.PI/180*j[i].o.longitudeOfAscendingNode
 	    j[i].o.argp = 2*Math.PI/180*j[i].o.argumentOfPeriapsis
-            var orb = makeOrbit( j[i].o, mat.clone() )
+	    // .clone() here allows modification of mat per-orbit
+            //var orb = makeOrbit( j[i].o, mat.clone() )
+            var orb = makeOrbit( j[i].o, tubemat )
    //   system.add( orb )
 	scene.add( orb )
     }})
@@ -346,6 +355,8 @@ function animate() {
     m.position.copy( orbit.curve.getPoint( ang, true ));
     m.position.applyMatrix4( orbit.rotMatrix );
 
+    
+    tubemat.uniforms.amplitude.value = camera.position.length()/1000
     renderer.autoClear = false;;
     renderer.clear()
     renderer.render(bgscene, camera);
