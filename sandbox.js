@@ -133,7 +133,7 @@ function orbitinit() {
             var orb = makeOrbit( j[i].o, tmat )
       system.add( orb )
 	    g = orb.geometry
-	    g.parameters.radius *= 20
+	    g.parameters.radius *= 15
 	    var hlp = new th.Mesh( new th.TubeGeometry( g.parameters.path, g.segments, g.parameters.radius, g.parameters.radialSegments ), mat )
 	    hlp.rotation.copy( orb.rotation )
 	    clickhelp.add( hlp )
@@ -371,7 +371,7 @@ function animate() {
     m.position.applyMatrix4( orbit.rotMatrix );
 
     
-    matu.value = Math.clamp(Math.pow(camera.position.length(),1.3)/1e4,0.3,1e4)
+    matu.value = Math.clamp(Math.pow(camera.position.length(),1.35)/1e4,0.1,10)
     renderer.autoClear = false;
     renderer.clear()
     renderer.render(bgscene, camera);
