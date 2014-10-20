@@ -6,8 +6,11 @@ var th = THREE;
 var parent, renderer, scene, camera, controls, pivot1, pivot2, pivot3, stats, gui;
 
 var line,sphere,refdir,refplane,orbit,parentbody;
+var matu = {type:'f', value:0 }
 var tubemat = new th.ShaderMaterial({
-	  uniforms: { amplitude: {type:'f', value:0 }, color: {type:'c', value: new th.Color( 0xffffff ) } }
+	  uniforms: { amplitude: matu 
+	    ,color: {type:'c', value: new th.Color( 0xffffff ) } 
+	  }
 	  ,vertexShader: document.getElementById( 'vertexShader' ).textContent
 	  ,fragmentShader: document.getElementById( 'fragmentShader' ).textContent
 	})
@@ -41,7 +44,7 @@ var fakeit = false;
 var projector = new th.Projector();
 var globalscale = 1e-5;
 
-function thing(e) {
+function onMouseDown(e) {
     mouseDown = true;
     e.preventDefault();
   if (e.button != 2) return;
@@ -61,15 +64,15 @@ function thing(e) {
 //  raycaster.ray.set( camera.position, mouseVector.normalize() );
 
  // scene.add(new th.ArrowHelper( mouseVector.normalize(), camera.position, 1e5, 0xff0000 ))
-  var intersects = raycaster.intersectObjects( scene.children );
-  for (var i=0; i<intersects.length; i++){
-    //intersects[i].object.material.color.setHex( 0xffffff* Math.random() )
-    intersects[i].object.material.uniforms.color.value = new th.Color( 0xffffff* Math.random() )
-    console.log(intersects[i])
+  var intersects = raycaster.intersectObjects( clickhelp.children, true );
+    if (intersects[0]){
+    //intersects[0].object.realobj.material.uniforms.color.value = new th.Color( 0xffffff* Math.random() )
+    var c = intersects[0].object.realobj.material.uniforms.color
+    c.value = new th.Color( (c.value.r == 1 && c.value.g == 0 && c.value.b == 0 ) ? 0xffffff : 0xff0000 )
   }
 //}
 }
-    document.addEventListener('mousedown', thing, false);
+    document.addEventListener('mousedown', onMouseDown, false);
 
 var kerbolsys;
 function orbitinit() {
@@ -107,11 +110,14 @@ function orbitinit() {
     orbit.animate = false;
 
     system = new th.Object3D()
+    clickhelp = new th.Object3D()
+
     $.getJSON("kerbolsys.json",function(j) {
 	var mat = new th.LineBasicMaterial({
-        //color: 0xFFFFFF,
-        opacity: 1,
-        linewidth: 1e10
+        color: 0xFF0000,
+        opacity: 0.3,
+	transparent: true,
+        linewidth: 1e3
       })
         	for ( var i=0; i<j.length; i++ ){
 	    j[i].o.parent = parentbody
@@ -122,9 +128,17 @@ function orbitinit() {
 	    j[i].o.argp = 2*Math.PI/180*j[i].o.argumentOfPeriapsis
 	    // .clone() here allows modification of mat per-orbit
             //var orb = makeOrbit( j[i].o, mat.clone() )
-            var orb = makeOrbit( j[i].o, tubemat )
-   //   system.add( orb )
-	scene.add( orb )
+            tmat = tubemat.clone()
+	    tmat.uniforms.amplitude = matu
+            var orb = makeOrbit( j[i].o, tmat )
+      system.add( orb )
+	    g = orb.geometry
+	    g.parameters.radius *= 20
+	    var hlp = new th.Mesh( new th.TubeGeometry( g.parameters.path, g.segments, g.parameters.radius, g.parameters.radialSegments ), mat )
+	    hlp.rotation.copy( orb.rotation )
+	    clickhelp.add( hlp )
+	    hlp.realobj = orb
+	//scene.add( orb )
     }})
 }
 
@@ -305,6 +319,7 @@ var cubemat = new THREE.ShaderMaterial( {
 
     //sphere.add(line);
     sphere.add(system);
+    // since clickhelp never gets rendered, this is needed for raycasting
     scene.add(sphere);
     
     //var arrow = new th.ArrowHelper( parentbody.refdir, new th.Vector3(0,0,0), 5, 0x00ff00 );
@@ -356,11 +371,12 @@ function animate() {
     m.position.applyMatrix4( orbit.rotMatrix );
 
     
-    tubemat.uniforms.amplitude.value = camera.position.length()/1000
-    renderer.autoClear = false;;
+    matu.value = Math.clamp(Math.pow(camera.position.length(),1.3)/1e4,0.3,1e4)
+    renderer.autoClear = false;
     renderer.clear()
     renderer.render(bgscene, camera);
     renderer.render(scene, camera);
+    clickhelp.updateMatrixWorld();
     stats.update()
 
 }
@@ -371,4 +387,3 @@ Math.clamp = function(a,min,max) { return ( a<min ? min : ( a>max ? max : a ) );
 orbitinit();
 init();
 animate();
-
