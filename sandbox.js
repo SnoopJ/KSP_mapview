@@ -67,12 +67,18 @@ function onMouseDown(e) {
   var intersects = raycaster.intersectObjects( clickhelp.children, true );
     if (intersects[0]){
     //intersects[0].object.realobj.material.uniforms.color.value = new th.Color( 0xffffff* Math.random() )
-    var c = intersects[0].object.realobj.material.uniforms.color
-    c.value = new th.Color( (c.value.r == 1 && c.value.g == 0 && c.value.b == 0 ) ? 0xffffff : 0xff0000 )
-  }
+    selectOrbit(intersects[0])
+      }
 //}
 }
     document.addEventListener('mousedown', onMouseDown, false);
+
+var selectedOrbit;
+function selectOrbit(o) {
+    if (selectedOrbit) selectedOrbit.material.uniforms.color.value = new th.Color( 0xffffff )
+    selectedOrbit = o.object.realobj
+    o.object.realobj.material.uniforms.color.value = new th.Color( 0xff0000 )
+}
 
 var kerbolsys;
 function orbitinit() {
