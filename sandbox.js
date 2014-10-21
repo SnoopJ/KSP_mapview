@@ -230,7 +230,7 @@ function init() {
     info.style.backgroundColor = 'transparent';
     info.style.zIndex = '1';
     info.style.fontFamily = 'Monospace';
-    info.innerHTML = 'Drag your cursor to rotate camera<BR>R-click to \'select\' orbits<BR>Skybox by Rareden';
+    info.innerHTML = 'Drag your cursor to rotate camera<BR>Skybox by Rareden';
     document.body.appendChild(info);
     // renderer
     //renderer = new th.CanvasRenderer();
@@ -258,13 +258,15 @@ function init() {
 
     // camera
     camera = new th.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 1e10);
-    camera.position.set(1e8*globalscale, 400e5*globalscale, 0);
+    //camera.position.set(1e8*globalscale, 400e5*globalscale, 0);
     defcamera = camera.position.clone()
 
     // controls
     // having renderer.domElement here avoids capturing input for dat.GUI 
     controls = new th.OrbitControls(camera, renderer.domElement);
     controls.targetName = "Kerbol"
+    controls.zoom = (function(zoomDist) { this.object.position.copy( this.target.clone().sub( this.object.position ).normalize().multiplyScalar( zoomDist ) ) })
+    controls.maxDistance = 2e5; controls.minDistance = 1;
 
     // axes
     //scene.add(new th.AxisHelper(20));
@@ -358,6 +360,9 @@ var cubemat = new THREE.ShaderMaterial( {
     //m.position.add( sphere.position );
     m.position.copy( orbit.curve.getPoint(Math.PI/2, true) );
     m.position.applyMatrix4( orbit.rotMatrix );
+
+    camera.position.set( 1e8, 1e5, 0 )
+    //camera.position.copy( controls.target.clone().sub( camera.position ).normalize().multiplyScalar(1e4) )
 
 }
 
