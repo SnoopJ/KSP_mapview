@@ -10,9 +10,12 @@ var matu = {type:'f', value:0 }
 var tubemat = new th.ShaderMaterial({
 	  uniforms: { amplitude: matu 
 	    ,color: {type:'c', value: new th.Color( 0xffffff ) } 
+            ,a: {type:'f', value: 1.0 }
 	  }
 	  ,vertexShader: document.getElementById( 'vertexShader' ).textContent
 	  ,fragmentShader: document.getElementById( 'fragmentShader' ).textContent
+	  ,transparent: true
+          
 	})
 
 // Default to 3s resolution
@@ -42,26 +45,25 @@ function TMhandler(m) {
 // debug, emulate Telemachus responses
 var fakeit = false;
 var projector = new th.Projector();
-var globalscale = 1e-5;
+var globalscale = 1e-6;
 
 function onMouseDown(e) {
     mouseDown = true;
-    e.preventDefault();
+    //e.preventDefault();
   if (e.button != 2) return;
     //if ( e.button == 2 ) { // R-click
 //	window.open( renderer.domElement.toDataURL("image/png"), "Final");	
   mouseVector = new THREE.Vector3();
   mouseVector.x = 2 * (e.clientX / window.innerWidth ) - 1;
   mouseVector.y = 1 - 2 * ( e.clientY / window.innerHeight );
-  mouseVector.z = 1.0
+  mouseVector.z = 0.1
 
   var end = new th.Vector3(); end.copy(mouseVector); end.z = -1.0;
 
-//  console.log(mouseVector.clone().normalize() )
-  raycaster = projector.pickingRay( mouseVector.clone(), camera );
-  raycaster.precision *= 10000
-//  console.log(mouseVector.clone().normalize() )
-//  raycaster.ray.set( camera.position, mouseVector.normalize() );
+  //raycaster = projector.pickingRay( mouseVector, camera );
+  projector.unprojectVector(mouseVector,camera)
+  var org = origin = camera.position
+  raycaster = new th.Raycaster(org,mouseVector.sub(camera.position).normalize(),0,1e10)
 
  // scene.add(new th.ArrowHelper( mouseVector.normalize(), camera.position, 1e5, 0xff0000 ))
   var intersects = raycaster.intersectObjects( clickhelp.children, true );
@@ -77,7 +79,7 @@ var selectedOrbit;
 function selectOrbit(o) {
     if (selectedOrbit) selectedOrbit.material.uniforms.color.value = new th.Color( 0xffffff )
     selectedOrbit = o.object.realobj
-    o.object.realobj.material.uniforms.color.value = new th.Color( 0xff0000 )
+    selectedOrbit.material.uniforms.color.value = new th.Color( 0xff0000 )
 }
 
 var kerbolsys;
@@ -118,36 +120,41 @@ function orbitinit() {
     system = new th.Object3D()
     clickhelp = new th.Object3D()
 
-    $.getJSON("kerbolsys.json",function(j) {
-	var mat = new th.LineBasicMaterial({
-        color: 0xFF0000,
-        opacity: 0.3,
-	transparent: true,
-        linewidth: 1e3
-      })
-        	for ( var i=0; i<j.length; i++ ){
-	    j[i].o.parent = parentbody
-	    j[i].o.sma *= globalscale
-	    j[i].o.e = j[i].o.eccentricity
-	    j[i].o.inc = 2*Math.PI/180*j[i].o.inclination
-	    j[i].o.laan = 2*Math.PI/180*j[i].o.longitudeOfAscendingNode
-	    j[i].o.argp = 2*Math.PI/180*j[i].o.argumentOfPeriapsis
-	    // .clone() here allows modification of mat per-orbit
-            //var orb = makeOrbit( j[i].o, mat.clone() )
-            tmat = tubemat.clone()
-	    tmat.uniforms.amplitude = matu
-            var orb = makeOrbit( j[i].o, tmat )
-      system.add( orb )
-	    g = orb.geometry
-	    g.parameters.radius *= 15
-	    var hlp = new th.Mesh( new th.TubeGeometry( g.parameters.path, g.segments, g.parameters.radius, g.parameters.radialSegments ), mat )
-	    hlp.rotation.copy( orb.rotation )
-	    clickhelp.add( hlp )
-	    hlp.realobj = orb
-	//scene.add( orb )
-    }})
+    $.getJSON("kerbolsys.json", function(j) { JSONtoOrbit(j) })
 }
 
+function JSONtoOrbit(j,p){
+  for (var i=0; i<j.length; i++) {
+    var o = j[i]
+    o.parent = parentbody
+    o.sma *= globalscale
+    o.e = o.eccentricity
+    o.inc = 2*Math.PI/180*o.inclination
+    o.laan = 2*Math.PI/180*o.longitudeOfAscendingNode
+    o.argp = 2*Math.PI/180*o.argumentOfPeriapsis
+    tmat = tubemat.clone()
+    tmat.uniforms.amplitude = matu
+    var orb = makeOrbit( o, tmat )
+    var sph = new th.Mesh(new th.SphereGeometry(o.bodysize*globalscale,32,32))
+    sph.name = o.name
+    sph.renderDepth = 1
+    sph.position.copy( orb.curve.getPoint(Math.PI/2,true) )
+    //sph.applyMatrix( orb.matrix )
+    orb.add(sph)
+    if (p) { p.add(orb) } else { system.add( orb ) }
+    g = orb.geometry
+    g.parameters.radius *= 15
+    var hlp = new th.Mesh( new th.TubeGeometry( g.parameters.path, g.segments, g.parameters.radius, g.parameters.radialSegments ) )
+    hlp.rotation.copy( orb.rotation )
+    hlp.position.copy( orb.parent.position )
+    hlp.realobj = orb
+    clickhelp.add( hlp )
+
+    if (j[i].children) { JSONtoOrbit(j[i].children,sph) }
+
+  }
+
+}
 function makeOrbit(o,mat) {
 	// Create the THREE.Line associated with an orbit
 	var pt = function(t,isAngle) { 
@@ -178,7 +185,8 @@ function makeOrbit(o,mat) {
 	var orb;
 	// material optional
 	// if (mat) { orb = new th.Line(geo,mat); } else { orb = new th.Line(geo); }
-        orb = new th.Mesh( new th.TubeGeometry( curve, 100, 2e4*globalscale, 10 ) )
+        orb = new th.Mesh( new th.TubeGeometry( curve, 1000, o.bodysize/10*globalscale, 10 ) )
+	console.log("generated "+orb.geometry.vertices.length+" vertices in one orbit ("+o.name+")")
  	if (mat) { orb.material = mat }
 
 	// transform to be correct relative to parent
@@ -189,6 +197,7 @@ function makeOrbit(o,mat) {
 
 	// store this matrix with the orbit, we'll need it again
 	orbit.rotMatrix = m;
+        orb.curve = curve;
     	orb.setRotationFromMatrix(m);
 	return orb;
 }
@@ -243,8 +252,25 @@ function init() {
     stats.domElement.style.top = '0px';
     document.body.appendChild( stats.domElement );
     
+        // scene
+    scene = new th.Scene();
+    bgscene = new th.Scene();
+
+    // camera
+    camera = new th.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 1e10);
+    camera.position.set(1e8*globalscale, 400e5*globalscale, 0);
+    defcamera = camera.position.clone()
+
+    // controls
+    // having renderer.domElement here avoids capturing input for dat.GUI 
+    controls = new th.OrbitControls(camera, renderer.domElement);
+    controls.targetName = "Kerbol"
+
+    // axes
+    //scene.add(new th.AxisHelper(20));
     gui = new dat.GUI({width: 500});
-    gui.add( orbit, 'e' ).min(0).max(5).step(0.01).listen().name("Eccentricity").onChange( updateOrbit ); 
+    gui.add( controls, 'targetName', ["Kerbol","Kerbin","Mun","Minmus","Moho","Eve","Duna","Jool","Eeloo"] ).name("Target").onChange( function(n){ t = scene.getObjectByName(n,true); controls.target.copy(t.parent.localToWorld(t.position.clone())) } );
+    /*gui.add( orbit, 'e' ).min(0).max(5).step(0.01).listen().name("Eccentricity").onChange( updateOrbit ); 
     gui.add( orbit, 'incdeg' ).min(0).max(180).step(1).listen().name("Inclination (deg)").onChange( updateOrbit );
     gui.add( orbit, 'argpdeg' ).min(0).max(360).step(1).listen().name("Argument of Periapsis (deg)").onChange( updateOrbit );
     gui.add( orbit, 'sma' ).min(1).max(10).listen().name("Semi-major axis").onChange( updateOrbit );
@@ -254,22 +280,8 @@ function init() {
     gui.add( parentbody.position, 'y' ).min(-5).max(5).listen().name("Parent y").onChange( updateOrbit );
     gui.add( parentbody.position, 'z' ).min(-5).max(5).name("Parent z").onChange( updateOrbit );
     gui.add( orbit, 'animate' ).listen().name("Animate orbit?").onChange( updateOrbit );
-    gui.close()
+    gui.close()*/
     //gui.add( orbit, 'nudeg').min(0).max(360).listen().name("True Anomaly (deg)").onChange( setNu );
-    // scene
-    scene = new th.Scene();
-    bgscene = new th.Scene();
-
-    // camera
-    camera = new th.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 1e10*globalscale);
-    camera.position.set(1e8*globalscale, 0, 300e3*globalscale);
-
-    // controls
-    // having renderer.domElement here avoids capturing input for dat.GUI 
-    controls = new th.OrbitControls(camera, renderer.domElement);
-
-    // axes
-    //scene.add(new th.AxisHelper(20));
 
   var urls = [ 
     'img/rareden/Skybox_PositiveX.jpg'
@@ -293,10 +305,10 @@ var cubemat = new THREE.ShaderMaterial( {
   side: THREE.BackSide
 });
   //cubemat.side = th.BackSide
-  var scale = 1e10*globalscale
-  cubegeo = new th.BoxGeometry( scale, scale, scale )
+  cubegeo = new th.BoxGeometry( 1e11, 1e11, 1e11 )
   cube = new th.Mesh(cubegeo,cubemat)
-  bgscene.add(cube)
+  cube.renderDepth = -1
+  scene.add(cube)
             
     var material = new th.LineBasicMaterial({
         color: 0xFFFFFF,
@@ -315,13 +327,14 @@ var cubemat = new THREE.ShaderMaterial( {
     m.multiply( (new th.Matrix4).makeRotationAxis( parentbody.refnml, orbit.argp ));
     line.setRotationFromMatrix(m);*/
 
-    var geometry = new th.SphereGeometry(globalscale*261e3, 16, 16);
+    var geometry = new th.SphereGeometry(globalscale*261e6, 16, 16);
     //geometry.z = 10;
     var spherematerial = new th.MeshBasicMaterial({
         color: 0xffff00,
 	wireframe: true
     });
     sphere = new th.Mesh(geometry, spherematerial);
+    sphere.name = "Kerbol"
 
     //sphere.add(line);
     sphere.add(system);
@@ -355,7 +368,7 @@ function animate() {
     requestAnimationFrame(animate);
     controls.update();
 
-    if (orbit.animate) {
+    /*if (orbit.animate) {
 	    var inv = (new th.Matrix4).getInverse(orbit.rotMatrix);
 	    var rvec = m.position.clone().applyMatrix4(inv);
 	    r = rvec.length();
@@ -374,13 +387,11 @@ function animate() {
     }
 
     m.position.copy( orbit.curve.getPoint( ang, true ));
-    m.position.applyMatrix4( orbit.rotMatrix );
+    m.position.applyMatrix4( orbit.rotMatrix );*/
 
     
-    matu.value = Math.clamp(Math.pow(camera.position.length(),1.35)/1e4,0.1,10)
-    renderer.autoClear = false;
-    renderer.clear()
-    renderer.render(bgscene, camera);
+    var dist = camera.position.clone().sub(controls.target).length()
+    matu.value = Math.pow(dist,1.1)/1e3
     renderer.render(scene, camera);
     clickhelp.updateMatrixWorld();
     stats.update()

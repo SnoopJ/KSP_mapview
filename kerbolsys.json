@@ -2,93 +2,102 @@
   {
     "name" : "Kerbin"
     ,"type" : "body"
-    ,"o" : {
-      "sma" : 13599840256e-3
-      ,"eccentricity" : 0
-      ,"inclination" : 0
-      ,"argumentOfPeriapsis" : 0
-      ,"longitudeOfAscendingNode" : 0
-      ,"maee" : 3.14
-      ,"epoch" : 0
-    }
-    ,"children" : []
+    , "sma" : 13599840256
+    ,"eccentricity" : 0
+    ,"inclination" : 0
+    ,"argumentOfPeriapsis" : 0
+    ,"longitudeOfAscendingNode" : 0
+    ,"maee" : 3.14
+    ,"bodysize" : 600e3
+    ,"children" : [
+       {
+        "name" : "Mun"
+        ,"type" : "body"
+        ,"sma" : 12000000
+        ,"eccentricity" : 0
+        ,"inclination" : 0
+        ,"argumentOfPeriapsis" : 0
+        ,"longitudeOfAscendingNode" : 0
+        ,"maee" : 1.7
+        ,"bodysize" : 200e3
+      }
+      ,{
+        "name" : "Minmus"
+        ,"type" : "body"
+        ,"sma" : 47000000
+        ,"eccentricity" : 0
+        ,"inclination" : 6
+        ,"argumentOfPeriapsis" : 38
+        ,"longitudeOfAscendingNode" : 78
+        ,"maee" : 0.9
+        ,"bodysize" : 60e3
+        }
+    ]
   }
   ,{
     "name" : "Moho"
     ,"type" : "body"
-    ,"o" : {
-      "sma" : 5263138304e-3
-      ,"eccentricity" : 0.2
-      ,"inclination" : 7.0
-      ,"argumentOfPeriapsis" : 15
-      ,"longitudeOfAscendingNode" : 70
-      ,"maee" : 3.14
-      ,"epoch" : 0
-    }
+    ,"sma" : 5263138304
+    ,"eccentricity" : 0.2
+    ,"inclination" : 7.0
+    ,"argumentOfPeriapsis" : 15
+    ,"longitudeOfAscendingNode" : 70
+    ,"maee" : 3.14
+    ,"bodysize" : 600e3
   }
   ,{
     "name" : "Eve"
     ,"type" : "body"
-    ,"o" : {
-      "sma" : 9832684544e-3
-      ,"eccentricity" : 0.01
-      ,"inclination" : 2.1
-      ,"argumentOfPeriapsis" : 0 
-      ,"longitudeOfAscendingNode" : 15
-      ,"maee" : 3.14
-      ,"epoch" : 0
-    }
+    ,"sma" : 9832684544
+    ,"eccentricity" : 0.01
+    ,"inclination" : 2.1
+    ,"argumentOfPeriapsis" : 0 
+    ,"longitudeOfAscendingNode" : 15
+    ,"maee" : 3.14
+    ,"bodysize" : 600e3
   }
   ,{
     "name" : "Duna"
     ,"type" : "body"
-    ,"o" : {
-      "sma" : 20726155264e-3
-      ,"eccentricity" : 0.05
-      ,"inclination" : 0.06
-      ,"argumentOfPeriapsis" : 0 
-      ,"longitudeOfAscendingNode" : 135.5
-      ,"maee" : 3.14
-      ,"epoch" : 0
-    }
+    ,"sma" : 20726155264
+    ,"eccentricity" : 0.05
+    ,"inclination" : 0.06
+    ,"argumentOfPeriapsis" : 0 
+    ,"longitudeOfAscendingNode" : 135.5
+    ,"maee" : 3.14
+    ,"bodysize" : 600e3
   }
   ,{
     "name" : "Dres"
     ,"type" : "body"
-    ,"o" : {
-      "sma" : 40839348203e-3
-      ,"eccentricity" : 0.14
-      ,"inclination" : 5
-      ,"argumentOfPeriapsis" : 90 
-      ,"longitudeOfAscendingNode" : 280
-      ,"maee" : 3.14
-      ,"epoch" : 0
-    }
+    ,"sma" : 40839348203
+    ,"eccentricity" : 0.14
+    ,"inclination" : 5
+    ,"argumentOfPeriapsis" : 90 
+    ,"longitudeOfAscendingNode" : 280
+    ,"maee" : 3.14
+    ,"bodysize" : 600e3
   }
   ,{
     "name" : "Jool"
     ,"type" : "body"
-    ,"o" : {
-      "sma" : 68773560320e-3
-      ,"eccentricity" : 0.05
-      ,"inclination" : 1.304
-      ,"argumentOfPeriapsis" : 0 
-      ,"longitudeOfAscendingNode" : 52
-      ,"maee" : 0.1
-      ,"epoch" : 0
-    }
+    ,"sma" : 68773560320
+    ,"eccentricity" : 0.05
+    ,"inclination" : 1.304
+    ,"argumentOfPeriapsis" : 0 
+    ,"longitudeOfAscendingNode" : 52
+    ,"maee" : 0.1
+    ,"bodysize" : 600e3
   }
   ,{
     "name" : "Eeloo"
     ,"type" : "body"
-    ,"o" : {
-      "sma" : 90118820000e-3
-      ,"eccentricity" : 0.26
-      ,"inclination" : 6.15
-      ,"argumentOfPeriapsis" : 260
-      ,"longitudeOfAscendingNode" : 50
-      ,"maee" : 3.14
-      ,"epoch" : 0
-    }
+    ,"sma" : 90118820000
+    ,"eccentricity" : 0.26
+    ,"inclination" : 6.15
+    ,"argumentOfPeriapsis" : 260
+    ,"longitudeOfAscendingNode" : 50
+    ,"maee" : 3.14
+    ,"bodysize" : 600e3
   }
 ]

@@ -32,19 +32,13 @@
 			varying vec2 vUv;
 
 			uniform vec3 color;
+			uniform float a;
 
 			void main() {
 
-				vec3 light = vec3( 0.5, 0.2, 1.0 );
-				light = normalize( light );
 
-				//float dProd = dot( vNormal, light ) * 0.5 + 0.5;
-				float dProd = 1.0;
-
-				//vec4 tcolor = vec4( vec3(color), 1.0);
-				//vec4 gray = vec4( vec3( tcolor.r * 0.3 + tcolor.g * 0.59 + tcolor.b * 0.11 ), 1.0 );
-
-				gl_FragColor = vec4( color, 1.0 );
+				//if (vUv[1] > 0.0 && vUv[1] < 0.25 ) { a = 0.3; }
+				gl_FragColor = vec4( color, a );
 
 			}
 
