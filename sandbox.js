@@ -185,7 +185,7 @@ function makeOrbit(o,mat) {
 	var orb;
 	// material optional
 	// if (mat) { orb = new th.Line(geo,mat); } else { orb = new th.Line(geo); }
-        orb = new th.Mesh( new th.TubeGeometry( curve, 1000, o.bodysize/10*globalscale, 10 ) )
+        orb = new th.Mesh( new th.TubeGeometry( curve, 100, o.bodysize/10*globalscale, 10 ) )
 	console.log("generated "+orb.geometry.vertices.length+" vertices in one orbit ("+o.name+")")
  	if (mat) { orb.material = mat }
 
