@@ -132,14 +132,16 @@ function JSONtoOrbit(j,p){
     o.inc = 2*Math.PI/180*o.inclination
     o.laan = 2*Math.PI/180*o.longitudeOfAscendingNode
     o.argp = 2*Math.PI/180*o.argumentOfPeriapsis
+    o.bodysize *= globalscale
     tmat = tubemat.clone()
     tmat.uniforms.amplitude = matu
     var orb = makeOrbit( o, tmat )
-    var sph = new th.Mesh(new th.SphereGeometry(o.bodysize*globalscale,32,32))
+    var sph = new th.Mesh(new th.SphereGeometry(o.bodysize,32,32))
     sph.name = o.name
     sph.renderDepth = 1
     sph.position.copy( orb.curve.getPoint(Math.PI/2,true) )
     //sph.applyMatrix( orb.matrix )
+    sph.o = o
     orb.add(sph)
     if (p) { p.add(orb) } else { system.add( orb ) }
     g = orb.geometry
@@ -185,7 +187,7 @@ function makeOrbit(o,mat) {
 	var orb;
 	// material optional
 	// if (mat) { orb = new th.Line(geo,mat); } else { orb = new th.Line(geo); }
-        orb = new th.Mesh( new th.TubeGeometry( curve, 100, o.bodysize/10*globalscale, 10 ) )
+        orb = new th.Mesh( new th.TubeGeometry( curve, 100, o.bodysize/10, 10 ) )
 	console.log("generated "+orb.geometry.vertices.length+" vertices in one orbit ("+o.name+")")
  	if (mat) { orb.material = mat }
 
@@ -265,13 +267,15 @@ function init() {
     // having renderer.domElement here avoids capturing input for dat.GUI 
     controls = new th.OrbitControls(camera, renderer.domElement);
     controls.targetName = "Kerbol"
-    controls.zoom = (function(zoomDist) { this.object.position.copy( this.target.clone().sub( this.object.position ).normalize().multiplyScalar( zoomDist ) ) })
+    controls.zoom = (function(zoomDist) { 
+this.object.position.copy( this.target.clone().add( this.object.position.clone().sub( this.target ).normalize().multiplyScalar(zoomDist) ) )
+    })
     controls.maxDistance = 2e5; controls.minDistance = 1;
 
     // axes
     //scene.add(new th.AxisHelper(20));
     gui = new dat.GUI({width: 500});
-    gui.add( controls, 'targetName', ["Kerbol","Kerbin","Mun","Minmus","Moho","Eve","Duna","Jool","Eeloo"] ).name("Target").onChange( function(n){ t = scene.getObjectByName(n,true); controls.target.copy(t.parent.localToWorld(t.position.clone())) } );
+    gui.add( controls, 'targetName', ["Kerbol","Kerbin","Mun","Minmus","Moho","Eve","Duna","Jool","Eeloo"] ).name("Target").onChange( function(n){ t = scene.getObjectByName(n,true);  controls.target.copy(t.parent.localToWorld(t.position.clone())); controls.zoom(t.o.bodysize*100); } );
     /*gui.add( orbit, 'e' ).min(0).max(5).step(0.01).listen().name("Eccentricity").onChange( updateOrbit ); 
     gui.add( orbit, 'incdeg' ).min(0).max(180).step(1).listen().name("Inclination (deg)").onChange( updateOrbit );
     gui.add( orbit, 'argpdeg' ).min(0).max(360).step(1).listen().name("Argument of Periapsis (deg)").onChange( updateOrbit );
@@ -336,6 +340,7 @@ var cubemat = new THREE.ShaderMaterial( {
 	wireframe: true
     });
     sphere = new th.Mesh(geometry, spherematerial);
+    sphere.o = {bodysize: 261e6*globalscale}
     sphere.name = "Kerbol"
 
     //sphere.add(line);
@@ -396,7 +401,7 @@ function animate() {
 
     
     var dist = camera.position.clone().sub(controls.target).length()
-    matu.value = Math.pow(dist,1.1)/1e3
+    matu.value = Math.pow(dist,1)/1e3
     renderer.render(scene, camera);
     clickhelp.updateMatrixWorld();
     stats.update()
