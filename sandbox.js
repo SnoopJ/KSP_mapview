@@ -232,7 +232,7 @@ function init() {
     info.style.backgroundColor = 'transparent';
     info.style.zIndex = '1';
     info.style.fontFamily = 'Monospace';
-    info.innerHTML = 'Drag your cursor to rotate camera<BR>Skybox by Rareden';
+    info.innerHTML = 'Drag your cursor to rotate camera<BR>Scroll to zoom<BR>Skybox by Rareden';
     document.body.appendChild(info);
     // renderer
     //renderer = new th.CanvasRenderer();
